@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake Game</title>
+    <link rel="icon" type="image/x-icon" href="../assets/faviconAlien.ico">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f9;
+            text-align: center;
+        }
+        #gameCanvas {
+            border: 2px solid #000;
+            background-color: #f8f8f8;
+        }
+        h1 {
+            font-size: 36px;
+            color: #333;
+        }
+        #startBtn {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        #startBtn:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <br><br>
+    <h1>Snake Game</h1>
+    <canvas id="gameCanvas" width="500" height="500"></canvas>
+    <button id="startBtn">Start Game</button>
+    <p><a href="../index.html" target="_blank">Click here to go to Resume Page</a> | <a href="from_scratch.html" target="_blank">Click here to go to Music Page</a></p>
+
+    
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const scale = 20;
+        const rows = canvas.height / scale;
+        const columns = canvas.width / scale;
+        let snake;
+        let food;
+        let gameInterval;
+
+        // Start or restart the game
+        document.getElementById("startBtn").addEventListener("click", function () {
+            init();
+            document.getElementById("startBtn").disabled = true;
+        });
+
+        function init() {
+            snake = new Snake();
+            food = new Food();
+            document.getElementById("startBtn").disabled = true;
+            window.addEventListener("keydown", e => {
+                const direction = e.key.replace("Arrow", "").toLowerCase();
+                snake.changeDirection(direction);
+            });
+            clearInterval(gameInterval);
+            gameInterval = setInterval(gameLoop, 120); // Slower movement
+        }
+
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            snake.update();
+
+            if (snake.eat(food)) {
+                snake.grow();
+                food = new Food();
+            }
+
+            snake.draw();
+            food.draw();
+
+            if (snake.collide()) {
+                clearInterval(gameInterval);
+                alert("Game Over! Final Score: " + (snake.snakeArray.length - 1));
+                document.getElementById("startBtn").disabled = false;
+            }
+        }
+
+        function Snake() {
+            this.snakeArray = [{ x: 5, y: 5 }];
+            this.direction = "right";
+
+            this.changeDirection = function (newDirection) {
+                if (newDirection === "up" && this.direction !== "down") this.direction = "up";
+                else if (newDirection === "down" && this.direction !== "up") this.direction = "down";
+                else if (newDirection === "left" && this.direction !== "right") this.direction = "left";
+                else if (newDirection === "right" && this.direction !== "left") this.direction = "right";
+            };
+
+            this.update = function () {
+                const head = { ...this.snakeArray[0] };
+                if (this.direction === "up") head.y--;
+                if (this.direction === "down") head.y++;
+                if (this.direction === "left") head.x--;
+                if (this.direction === "right") head.x++;
+
+                // Add new head to the snake
+                this.snakeArray.unshift(head);
+
+                // Remove the tail unless the snake has just eaten
+                if (!this.justAte) {
+                    this.snakeArray.pop();
+                } else {
+                    this.justAte = false; // Reset growth flag
+                }
+            };
+
+            this.draw = function () {
+                for (let i = 0; i < this.snakeArray.length; i++) {
+                    ctx.fillStyle = i === 0 ? "#00BFFF" : "#00008B";
+                    ctx.fillRect(this.snakeArray[i].x * scale, this.snakeArray[i].y * scale, scale, scale);
+                }
+            };
+
+            this.eat = function (food) {
+                const head = this.snakeArray[0];
+                if (head.x === food.x && head.y === food.y) {
+                    this.justAte = true; // Mark that the snake has eaten
+                    return true;
+                }
+                return false;
+            };
+
+            this.grow = function () {
+                this.justAte = true; // Set the growth flag
+            };
+
+            this.collide = function () {
+                const head = this.snakeArray[0];
+
+                // Check collision with walls
+                if (head.x < 0 || head.x >= columns || head.y < 0 || head.y >= rows) return true;
+
+                // Check collision with its own body
+                for (let i = 1; i < this.snakeArray.length; i++) {
+                    if (this.snakeArray[i].x === head.x && this.snakeArray[i].y === head.y) {
+                        return true;
+                    }
+                }
+                return false;
+            };
+        }
+
+        function Food() {
+            this.x = Math.floor(Math.random() * columns);
+            this.y = Math.floor(Math.random() * rows);
+
+            // Ensure food does not spawn on the snake
+            while (snake.snakeArray.some(segment => segment.x === this.x && segment.y === this.y)) {
+                this.x = Math.floor(Math.random() * columns);
+                this.y = Math.floor(Math.random() * rows);
+            }
+
+            this.draw = function () {
+                ctx.fillStyle = "#FF0000";
+                ctx.fillRect(this.x * scale, this.y * scale, scale, scale);
+            };
+        }
+    </script>
+</body>
+</html>
